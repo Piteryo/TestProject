@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +21,7 @@ namespace TestProject
 {
   public class Startup
   {
+    public static List<Claim> claims = new List<Claim>();
     public Startup(IHostingEnvironment env)
     {
       var builder = new ConfigurationBuilder()
@@ -52,13 +55,23 @@ namespace TestProject
       services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
-      services.AddIdentity<ApplicationUser, IdentityRole>()
+      services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+        {
+          options.Password.RequireDigit = false;
+          options.Password.RequireLowercase = false;
+          options.Password.RequireNonAlphanumeric = false;
+          options.Password.RequireUppercase = false;
+        })
           .AddEntityFrameworkStores<ApplicationDbContext>()
           .AddDefaultTokenProviders();
-      var claims = new List<Claim>();
-      const string Issuer = "https://contoso.com";
-      claims.Add(new Claim(ClaimTypes.Role, "Administrator", ClaimValueTypes.String, Issuer));
-      services.AddMvc();
+    
+      services.AddMvc(config =>
+      {
+        var policy = new AuthorizationPolicyBuilder()
+                         .RequireAuthenticatedUser()
+                         .Build();
+        config.Filters.Add(new AuthorizeFilter(policy));
+      });
 
       // Add application services.
       services.AddTransient<IEmailSender, AuthMessageSender>();

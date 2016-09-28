@@ -11,7 +11,7 @@ using TestProject.Models;
 
 namespace TestProject.Controllers
 {
-  [Authorize]
+  [Authorize(Policy = "AdministratorOnly")]
     public class StudentsController : Controller
     {
         private readonly SchoolContext _context;
