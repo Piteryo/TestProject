@@ -17,6 +17,22 @@ using TestProject.Services;
 
 namespace TestProject
 {
+  public static class RoleHelper
+  {
+    private static async Task EnsureRoleCreated(RoleManager<IdentityRole> roleManager, string roleName)
+    {
+      if (!await roleManager.RoleExistsAsync(roleName))
+      {
+        await roleManager.CreateAsync(new IdentityRole(roleName));
+      }
+    }
+    public static async void EnsureRolesCreated(this RoleManager<IdentityRole> roleManager)
+    {
+      // add all roles, that should be in database, here
+      await EnsureRoleCreated(roleManager, "Developer");
+    }
+  }
+
   public class Startup
   {
     public Startup(IHostingEnvironment env)
@@ -41,11 +57,14 @@ namespace TestProject
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-      services.AddAuthorization(options =>
-      {
-        options.AddPolicy("AdministratorOnly", policy => policy.RequireRole("Administrator"));
-      });
+      services.AddAuthorization();
       // Add framework services.
+      services
+         .AddIdentity<ApplicationUser, IdentityRole>()
+         .AddRoleManager<ApplicationRoleManager>();
+
+
+
       services.AddDbContext<SchoolContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
@@ -55,9 +74,7 @@ namespace TestProject
       services.AddIdentity<ApplicationUser, IdentityRole>()
           .AddEntityFrameworkStores<ApplicationDbContext>()
           .AddDefaultTokenProviders();
-      var claims = new List<Claim>();
-      const string Issuer = "https://contoso.com";
-      claims.Add(new Claim(ClaimTypes.Role, "Administrator", ClaimValueTypes.String, Issuer));
+     
       services.AddMvc();
 
       // Add application services.
@@ -66,7 +83,9 @@ namespace TestProject
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, SchoolContext context)
+    
+
+    public async void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, RoleManager<IdentityRole> roleManager, SchoolContext context)
     {
       loggerFactory.AddConsole(Configuration.GetSection("Logging"));
       loggerFactory.AddDebug();
@@ -85,6 +104,7 @@ namespace TestProject
       app.UseStaticFiles();
 
       app.UseIdentity();
+       roleManager.EnsureRolesCreated();
 
       // Add external authentication middleware below. To configure them please see http://go.microsoft.com/fwlink/?LinkID=532715
 

@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
@@ -14,7 +15,6 @@ using TestProject.Services;
 
 namespace TestProject.Controllers
 {
-    [Authorize(Policy = "AdministratorOnly")]
     public class AccountController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -107,7 +107,8 @@ namespace TestProject.Controllers
             {
                 var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
                 var result = await _userManager.CreateAsync(user, model.Password);
-                if (result.Succeeded)
+
+        if (result.Succeeded)
                 {
                     // For more information on how to enable account confirmation and password reset please visit http://go.microsoft.com/fwlink/?LinkID=532713
                     // Send an email with this link
@@ -116,10 +117,14 @@ namespace TestProject.Controllers
                     //await _emailSender.SendEmailAsync(model.Email, "Confirm your account",
                     //    $"Please confirm your account by clicking this link: <a href='{callbackUrl}'>link</a>");
                     await _signInManager.SignInAsync(user, isPersistent: false);
-                    _logger.LogInformation(3, "User created a new account with password.");
-                     await _userManager.AddToRoleAsync(user, "Administrator");
 
-                    return RedirectToLocal(returnUrl);
+
+
+          _logger.LogInformation(3, "User created a new account with password.");
+          //  await _userManager.AddToRoleAsync(user, "Administrator");
+          await _userManager.AddToRoleAsync(user, "Developer");
+
+          return RedirectToLocal(returnUrl);
                 }
                 AddErrors(result);
             }
